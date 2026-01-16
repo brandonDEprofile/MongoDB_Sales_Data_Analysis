@@ -1,0 +1,64 @@
+use("sales_db");
+
+db.createCollection("sales_records");
+
+mongoimport --db sales_db --collection sales_records --type csv --headerline --file "------------"<<<<------insert your path here
+
+//Query 1 — Products with Most Profit
+
+var start = new Date();
+
+var result = db.sales_records.aggregate([
+  { $group: { _id: "$Item Type", totalProfit: { $sum: "$Total Profit" } } },
+  { $sort: { totalProfit: -1 } },
+  { $limit: 5 }
+]).toArray();
+
+var end = new Date();
+
+print("=== Query 1 Results ===");
+printjson(result);
+print("Query 1 time (ms): " + (end - start));
+
+//Query 2 — Regions with Most Profit
+var start = new Date();
+
+var result = db.sales_records.aggregate([
+  { $group: { _id: "$Region", totalProfit: { $sum: "$Total Profit" } } },
+  { $sort: { totalProfit: -1 } }
+]).toArray();
+
+var end = new Date();
+
+print("=== Query 2 Results ===");
+printjson(result);
+print("Query 2 time (ms): " + (end - start));
+
+//Query 3 — Online vs Offline Performance
+var start = new Date();
+
+var result = db.sales_records.aggregate([
+  {
+    $group: {
+      _id: "$Sales Channel",
+      totalProfit: { $sum: "$Total Profit" },
+      totalRevenue: { $sum: "$Total Revenue" }
+    }
+  }
+]).toArray();
+
+var end = new Date();
+
+print("=== Query 3 Results ===");
+printjson(result);
+print("Query 3 time (ms): " + (end - start));
+
+//Indexes
+// For Query 1
+db.sales_records.createIndex({ "Item Type": 1, "Total Profit": -1 });
+
+// For Query 2: regions ranked by profit
+db.sales_records.createIndex({ "Region": 1, "Total Profit": -1 });
+
+// For Query 3
+db.sales_records.createIndex({ "Sales Channel": 1, "Total Profit": -1 });
